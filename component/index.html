@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technology Entrepreneurship Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8 text-center">Technology Entrepreneurship Quiz</h1>
+        <div id="quiz-container" class="bg-white rounded-lg shadow-md p-6">
+            <div id="question-container" class="mb-6">
+                <h2 id="question" class="text-xl font-semibold mb-4"></h2>
+                <div id="answers" class="space-y-2"></div>
+            </div>
+            <div class="flex justify-between items-center">
+                <button id="prev-btn" class="bg-blue-500 text-white px-4 py-2 rounded hidden">Previous</button>
+                <button id="next-btn" class="bg-blue-500 text-white px-4 py-2 rounded">Next</button>
+                <button id="submit-btn" class="bg-green-500 text-white px-4 py-2 rounded hidden">Submit</button>
+            </div>
+        </div>
+        <div id="results" class="mt-8 bg-white rounded-lg shadow-md p-6 hidden">
+            <h2 class="text-2xl font-bold mb-4">Quiz Results</h2>
+            <p id="score"></p>
+            <ul id="feedback" class="list-disc pl-5 mt-4"></ul>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "What is a startup?",
+                answers: [
+                    "A small version of a large company",
+                    "A newly established business aiming to bring a unique product or service to market",
+                    "An established company with a proven business model",
+                    "A business that only focuses on profit"
+                ],
+                correct: 1
+            },
+            {
+                question: "Which of the following is NOT a key feature of startups?",
+                answers: [
+                    "Innovation",
+                    "Scalability",
+                    "Risk and Uncertainty",
+                    "Stable and predictable growth"
+                ],
+                correct: 3
+            },
+            {
+                question: "What is the 'Window of Opportunity' in entrepreneurship?",
+                answers: [
+                    "The time it takes to start a business",
+                    "The period when a firm can realistically enter a new market",
+                    "The duration of a business plan",
+                    "The time between idea generation and product launch"
+                ],
+                correct: 1
+            },
+            {
+                question: "Which of the following is NOT one of the four essential qualities of an opportunity?",
+                answers: [
+                    "Attractive",
+                    "Timely",
+                    "Durable",
+                    "Expensive"
+                ],
+                correct: 3
+            },
+            {
+                question: "What is 'entrepreneurial alertness'?",
+                answers: [
+                    "The ability to work long hours",
+                    "The skill of managing employees",
+                    "The ability to notice things without engaging in deliberate search",
+                    "The process of conducting market research"
+                ],
+                correct: 2
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let userAnswers = [];
+
+        const questionEl = document.getElementById("question");
+        const answersEl = document.getElementById("answers");
+        const prevBtn = document.getElementById("prev-btn");
+        const nextBtn = document.getElementById("next-btn");
+        const submitBtn = document.getElementById("submit-btn");
+        const quizContainer = document.getElementById("quiz-container");
+        const resultsContainer = document.getElementById("results");
+
+        function loadQuestion() {
+            const question = quizData[currentQuestion];
+            questionEl.textContent = `${currentQuestion + 1}. ${question.question}`;
+
+            answersEl.innerHTML = "";
+            question.answers.forEach((answer, index) => {
+                const button = document.createElement("button");
+                button.textContent = answer;
+                button.classList.add("w-full", "text-left", "p-2", "rounded", "hover:bg-gray-200");
+                if (userAnswers[currentQuestion] === index) {
+                    button.classList.add("bg-blue-200");
+                }
+                button.addEventListener("click", () => selectAnswer(index));
+                answersEl.appendChild(button);
+            });
+
+            prevBtn.style.display = currentQuestion > 0 ? "block" : "none";
+            nextBtn.style.display = currentQuestion < quizData.length - 1 ? "block" : "none";
+            submitBtn.style.display = currentQuestion === quizData.length - 1 ? "block" : "none";
+        }
+
+        function selectAnswer(index) {
+            userAnswers[currentQuestion] = index;
+            loadQuestion();
+        }
+
+        prevBtn.addEventListener("click", () => {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                loadQuestion();
+            }
+        });
+
+        nextBtn.addEventListener("click", () => {
+            if (currentQuestion < quizData.length - 1) {
+                currentQuestion++;
+                loadQuestion();
+            }
+        });
+
+        submitBtn.addEventListener("click", showResults);
+
+        function showResults() {
+            quizContainer.style.display = "none";
+            resultsContainer.style.display = "block";
+
+            score = userAnswers.reduce((acc, answer, index) => {
+                return acc + (answer === quizData[index].correct ? 1 : 0);
+            }, 0);
+
+            const scoreEl = document.getElementById("score");
+            scoreEl.textContent = `You scored ${score} out of ${quizData.length}.`;
+
+            const feedbackEl = document.getElementById("feedback");
+            quizData.forEach((question, index) => {
+                const li = document.createElement("li");
+                li.textContent = `Question ${index + 1}: ${userAnswers[index] === question.correct ? "Correct" : "Incorrect"}`;
+                feedbackEl.appendChild(li);
+            });
+        }
+
+        loadQuestion();
+    </script>
+</body>
+</html>
