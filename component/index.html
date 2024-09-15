@@ -5,25 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Technology Entrepreneurship Quiz</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .card {
+            perspective: 1000px;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+        .card-front, .card-back {
+            backface-visibility: hidden;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .card-back {
+            transform: rotateY(180deg);
+        }
+    </style>
 </head>
 <body class="bg-gray-100 font-sans">
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold mb-8 text-center">Technology Entrepreneurship Quiz</h1>
-        <div id="quiz-container" class="bg-white rounded-lg shadow-md p-6">
-            <div id="question-container" class="mb-6">
-                <h2 id="question" class="text-xl font-semibold mb-4"></h2>
-                <div id="answers" class="space-y-2"></div>
-            </div>
-            <div class="flex justify-between items-center">
-                <button id="prev-btn" class="bg-blue-500 text-white px-4 py-2 rounded hidden">Previous</button>
-                <button id="next-btn" class="bg-blue-500 text-white px-4 py-2 rounded">Next</button>
-                <button id="submit-btn" class="bg-green-500 text-white px-4 py-2 rounded hidden">Submit</button>
+        <div id="quiz-container" class="relative w-full h-96">
+            <!-- Card template -->
+            <div id="card-template" class="card absolute w-full h-full">
+                <div class="card-front bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
+                    <h2 id="question" class="text-xl font-semibold mb-4"></h2>
+                    <div id="answers" class="space-y-2 flex-grow"></div>
+                    <button id="flip-btn" class="bg-blue-500 text-white px-4 py-2 rounded mt-4">Check Answer</button>
+                </div>
+                <div class="card-back bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
+                    <h2 class="text-xl font-semibold mb-4">Answer</h2>
+                    <p id="feedback" class="flex-grow"></p>
+                    <button id="next-btn" class="bg-blue-500 text-white px-4 py-2 rounded mt-4">Next Question</button>
+                </div>
             </div>
         </div>
         <div id="results" class="mt-8 bg-white rounded-lg shadow-md p-6 hidden">
             <h2 class="text-2xl font-bold mb-4">Quiz Results</h2>
             <p id="score"></p>
-            <ul id="feedback" class="list-disc pl-5 mt-4"></ul>
         </div>
     </div>
 
@@ -85,16 +109,22 @@
         let score = 0;
         let userAnswers = [];
 
-        const questionEl = document.getElementById("question");
-        const answersEl = document.getElementById("answers");
-        const prevBtn = document.getElementById("prev-btn");
-        const nextBtn = document.getElementById("next-btn");
-        const submitBtn = document.getElementById("submit-btn");
         const quizContainer = document.getElementById("quiz-container");
+        const cardTemplate = document.getElementById("card-template");
         const resultsContainer = document.getElementById("results");
 
         function loadQuestion() {
             const question = quizData[currentQuestion];
+            const card = cardTemplate.cloneNode(true);
+            card.id = `card-${currentQuestion}`;
+            card.style.zIndex = quizData.length - currentQuestion;
+
+            const questionEl = card.querySelector("#question");
+            const answersEl = card.querySelector("#answers");
+            const flipBtn = card.querySelector("#flip-btn");
+            const nextBtn = card.querySelector("#next-btn");
+            const feedbackEl = card.querySelector("#feedback");
+
             questionEl.textContent = `${currentQuestion + 1}. ${question.question}`;
 
             answersEl.innerHTML = "";
@@ -102,56 +132,62 @@
                 const button = document.createElement("button");
                 button.textContent = answer;
                 button.classList.add("w-full", "text-left", "p-2", "rounded", "hover:bg-gray-200");
-                if (userAnswers[currentQuestion] === index) {
-                    button.classList.add("bg-blue-200");
-                }
-                button.addEventListener("click", () => selectAnswer(index));
+                button.addEventListener("click", () => selectAnswer(button, index));
                 answersEl.appendChild(button);
             });
 
-            prevBtn.style.display = currentQuestion > 0 ? "block" : "none";
-            nextBtn.style.display = currentQuestion < quizData.length - 1 ? "block" : "none";
-            submitBtn.style.display = currentQuestion === quizData.length - 1 ? "block" : "none";
+            flipBtn.addEventListener("click", () => flipCard(card));
+            nextBtn.addEventListener("click", () => nextQuestion(card));
+
+            quizContainer.appendChild(card);
         }
 
-        function selectAnswer(index) {
+        function selectAnswer(button, index) {
+            const card = button.closest(".card");
+            const answersEl = card.querySelector("#answers");
+            answersEl.querySelectorAll("button").forEach(btn => btn.classList.remove("bg-blue-200"));
+            button.classList.add("bg-blue-200");
             userAnswers[currentQuestion] = index;
-            loadQuestion();
         }
 
-        prevBtn.addEventListener("click", () => {
-            if (currentQuestion > 0) {
-                currentQuestion--;
-                loadQuestion();
+        function flipCard(card) {
+            card.classList.add("flipped");
+            const question = quizData[currentQuestion];
+            const feedbackEl = card.querySelector("#feedback");
+            const userAnswer = userAnswers[currentQuestion];
+            
+            if (userAnswer === question.correct) {
+                feedbackEl.textContent = "Correct! Well done.";
+                feedbackEl.classList.add("text-green-600");
+                score++;
+            } else {
+                feedbackEl.textContent = `Incorrect. The correct answer is: ${question.answers[question.correct]}`;
+                feedbackEl.classList.add("text-red-600");
             }
-        });
+        }
 
-        nextBtn.addEventListener("click", () => {
-            if (currentQuestion < quizData.length - 1) {
+        function nextQuestion(card) {
+            card.style.transform = "translateX(-100%) rotateY(180deg)";
+            card.style.opacity = "0";
+            card.style.transition = "all 0.6s ease-out";
+            
+            setTimeout(() => {
+                card.remove();
                 currentQuestion++;
-                loadQuestion();
-            }
-        });
-
-        submitBtn.addEventListener("click", showResults);
+                if (currentQuestion < quizData.length) {
+                    loadQuestion();
+                } else {
+                    showResults();
+                }
+            }, 600);
+        }
 
         function showResults() {
             quizContainer.style.display = "none";
             resultsContainer.style.display = "block";
 
-            score = userAnswers.reduce((acc, answer, index) => {
-                return acc + (answer === quizData[index].correct ? 1 : 0);
-            }, 0);
-
             const scoreEl = document.getElementById("score");
             scoreEl.textContent = `You scored ${score} out of ${quizData.length}.`;
-
-            const feedbackEl = document.getElementById("feedback");
-            quizData.forEach((question, index) => {
-                const li = document.createElement("li");
-                li.textContent = `Question ${index + 1}: ${userAnswers[index] === question.correct ? "Correct" : "Incorrect"}`;
-                feedbackEl.appendChild(li);
-            });
         }
 
         loadQuestion();
